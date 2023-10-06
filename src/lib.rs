@@ -10,7 +10,7 @@ pub struct MerkleTree<F: PrimeField, const WIDTH: usize> {
     is_tree_ready: bool,
     layers: Vec<Vec<F>>,
     depth: Option<usize>,
-    root: Option<F>,
+    pub root: Option<F>,
 }
 
 #[derive(Debug)]
@@ -18,6 +18,7 @@ pub struct MerkleProof<F: PrimeField> {
     pub leaf: F,
     pub siblings: Vec<F>,
     pub path_indices: Vec<usize>,
+    pub root: F,
 }
 
 impl<F: PrimeField, const WIDTH: usize> MerkleTree<F, WIDTH> {
@@ -142,6 +143,7 @@ impl<F: PrimeField, const WIDTH: usize> MerkleTree<F, WIDTH> {
             leaf,
             siblings,
             path_indices,
+            root: self.root.unwrap(),
         }
     }
 
