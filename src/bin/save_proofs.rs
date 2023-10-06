@@ -56,65 +56,76 @@ fn main() {
 
     // The depth of the tree
     let depth = 15;
-    let args: Vec<String> = env::args().collect();
 
-    // Input file path
-    let csv_file = &args[1];
+    // Read all files in csv/
+    let files = fs::read_dir("./csv/").unwrap();
 
-    // Output file name
-    let out_file = &args[2];
+    for file in files {
+        let path = file.unwrap().path();
 
-    // Open the csv file
-    let mut file = File::open(csv_file).unwrap();
+        // Open the csv file
+        let mut file = File::open(path.clone()).unwrap();
 
-    // Read all lines into `contents`
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).unwrap();
+        // Extract the file name.
+        // This will be used as the name of the output file
+        let file_name = path
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .replace(".csv", "");
 
-    let mut rdr = ReaderBuilder::new().from_reader(contents.as_bytes());
+        println!("Processing {}... ", file_name);
 
-    let mut addresses = vec![];
+        // Read all lines into `contents`
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).unwrap();
 
-    // Store the addresses in a vector
-    for result in rdr.records() {
-        let record = result.unwrap();
-        let record_hex = hex::decode(record.get(0).unwrap().replace("0x", "")).unwrap();
-        let leaf = F::from(BigUint::from_bytes_be(&record_hex));
-        addresses.push(leaf);
+        let mut rdr = ReaderBuilder::new().from_reader(contents.as_bytes());
+
+        let mut addresses = vec![];
+
+        // Store the addresses in a vector
+        for result in rdr.records() {
+            let record = result.unwrap();
+            let record_hex = hex::decode(record.get(0).unwrap().replace("0x", "")).unwrap();
+            let leaf = F::from(BigUint::from_bytes_be(&record_hex));
+            addresses.push(leaf);
+        }
+
+        let mut leaves = addresses.clone();
+        // Pad the leaves to equal the size of the tree
+        leaves.resize(1 << depth, F::ZERO);
+
+        const ARTY: usize = 2;
+        const WIDTH: usize = ARTY + 1;
+
+        let mut tree = MerkleTree::<F, WIDTH>::new(secp256k1_w3());
+        // Insert all leaves into the tree
+        for leaf in leaves {
+            tree.insert(leaf);
+        }
+
+        tree.finish();
+
+        // Transform the proofs into json
+        let proofs = addresses
+            .iter()
+            .map(|address| tree.create_proof(*address).to_json())
+            .collect::<Vec<MerkleProofJsonWithAddress>>();
+
+        // Construct the json string
+        let json = serde_json::to_string(&proofs).unwrap();
+
+        // Create the out directory if it doesn't exist
+        if fs::read_dir("out/").is_err() {
+            fs::create_dir("out/").unwrap();
+        }
+
+        let out_path = Path::new("./out/").join(format!("{}.json", file_name));
+        let mut file = File::create(out_path).unwrap();
+
+        // Write the json to the file
+        file.write_all(json.as_bytes()).unwrap();
     }
-
-    let mut leaves = addresses.clone();
-    // Pad the leaves to equal the size of the tree
-    leaves.resize(1 << depth, F::ZERO);
-
-    const ARTY: usize = 2;
-    const WIDTH: usize = ARTY + 1;
-
-    let mut tree = MerkleTree::<F, WIDTH>::new(secp256k1_w3());
-    // Insert all leaves into the tree
-    for leaf in leaves {
-        tree.insert(leaf);
-    }
-
-    tree.finish();
-
-    // Transform the proofs into json
-    let proofs = addresses
-        .iter()
-        .map(|address| tree.create_proof(*address).to_json())
-        .collect::<Vec<MerkleProofJsonWithAddress>>();
-
-    // Construct the json string
-    let json = serde_json::to_string(&proofs).unwrap();
-
-    // Create the out directory if it doesn't exist
-    if fs::read_dir("out/").is_err() {
-        fs::create_dir("out/").unwrap();
-    }
-
-    let out_path = Path::new("./out/").join(format!("{}.json", out_file));
-    let mut file = File::create(out_path).unwrap();
-
-    // Write the json to the file
-    file.write_all(json.as_bytes()).unwrap();
 }

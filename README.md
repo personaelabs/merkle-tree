@@ -1,13 +1,7 @@
-# Save Merkle proofs in JSON
+Save Merkle proofs in JSON
 
 ```
-cargo run --release --bin save_proofs [input_file] [output_file]
+cargo run --release --bin save_proofs
 ```
 
-- The input file should be a csv file with one address per line.
-- The output file will be stored in the `out/` folder.
-
-### Example
-```
-cargo run --release --bin save_proofs ./sample.csv sampleproofs
-```
+- All csv files in `csv/` will be processed and the Merkle proofs will be saved in `out/`.
