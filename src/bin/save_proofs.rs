@@ -85,18 +85,33 @@ fn save_tree<F: PrimeField>(leaves: Vec<F>, depth: usize, out_file: &str) -> F {
         .collect::<Vec<MerkleProofJsonWithAddress>>();
 
     // Construct the json string of proofs
-    let json = serde_json::to_string(&proofs).unwrap();
+    let proofs_json = serde_json::to_string(&proofs).unwrap();
 
-    // Create the out directory if it doesn't exist
+    // Create the out/ directory if it doesn't exist
     if fs::read_dir("out/").is_err() {
         fs::create_dir("out/").unwrap();
     }
 
-    let out_path = Path::new("./out/").join(format!("{}.json", out_file));
-    let mut file = File::create(out_path).unwrap();
+    let proofs_out_path = Path::new("./out/").join(format!("{}.json", out_file));
+    let mut proofs_file = File::create(proofs_out_path).unwrap();
 
-    // Write the json to the file
-    file.write_all(json.as_bytes()).unwrap();
+    // Write the proofs to a file
+    proofs_file.write_all(proofs_json.as_bytes()).unwrap();
+
+    // Construct the json string of addresses
+    let addresses_json = serde_json::to_string(
+        &leaves
+            .iter()
+            .map(|leaf| leaf.to_string())
+            .collect::<Vec<String>>(),
+    )
+    .unwrap();
+
+    let addresses_out_path = Path::new("./out/").join(format!("{}.addresses.json", out_file));
+    let mut addresses_file = File::create(addresses_out_path).unwrap();
+
+    // Write the addresses to a file
+    addresses_file.write_all(addresses_json.as_bytes()).unwrap();
 
     tree.root.unwrap()
 }
@@ -163,7 +178,7 @@ fn main() {
         roots.push((root_dev, file_name_dev));
     }
 
-    // Print the root to set name mapping
+    // Save the root to set name mapping as JSON
     let mut root_to_label_mapping = "{\n".to_string();
     for (i, (root, name)) in roots.iter().enumerate() {
         if i == roots.len() - 1 {
