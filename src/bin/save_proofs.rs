@@ -15,7 +15,7 @@ use std::{
 
 #[derive(Serialize)]
 pub struct MerkleProofJson {
-    siblings: Vec<[String; 1]>,
+    siblings: Vec<String>,
     pathIndices: Vec<String>,
     root: String,
 }
@@ -30,18 +30,28 @@ trait ToJson {
     fn to_json(&self) -> MerkleProofJsonWithAddress;
 }
 
+fn to_hex<F: PrimeField>(x: F) -> String {
+    let bytes = x
+        .into_bigint()
+        .to_bytes_be()
+        .iter()
+        .filter(|x| *x != &0u8)
+        .cloned()
+        .collect::<Vec<u8>>();
+    format!("0x{}", hex::encode(bytes))
+}
+
 impl<F: PrimeField> ToJson for MerkleProof<F> {
     fn to_json(&self) -> MerkleProofJsonWithAddress {
-        let address_bytes = &self.leaf.into_bigint().to_bytes_be()[12..];
         MerkleProofJsonWithAddress {
-            address: format!("0x{}", hex::encode(address_bytes)),
+            address: to_hex(self.leaf),
             merkleProof: MerkleProofJson {
-                root: self.root.to_string(),
+                root: to_hex(self.root),
                 siblings: self
                     .siblings
                     .iter()
-                    .map(|sibling| [sibling.to_string()])
-                    .collect::<Vec<[String; 1]>>(),
+                    .map(|sibling| to_hex(*sibling))
+                    .collect::<Vec<String>>(),
                 pathIndices: self
                     .path_indices
                     .iter()
@@ -102,7 +112,7 @@ fn save_tree<F: PrimeField>(leaves: Vec<F>, depth: usize, out_file: &str) -> F {
     let addresses_json = serde_json::to_string(
         &leaves
             .iter()
-            .map(|leaf| leaf.to_string())
+            .map(|leaf| to_hex(*leaf))
             .collect::<Vec<String>>(),
     )
     .unwrap();
@@ -182,9 +192,9 @@ fn main() {
     let mut root_to_label_mapping = "{\n".to_string();
     for (i, (root, name)) in roots.iter().enumerate() {
         if i == roots.len() - 1 {
-            root_to_label_mapping += &format!("\"{}\": \"{}\"\n", root, name);
+            root_to_label_mapping += &format!("\"{}\": \"{}\"\n", to_hex(*root), name);
         } else {
-            root_to_label_mapping += &format!("\"{}\": \"{}\",\n", root, name);
+            root_to_label_mapping += &format!("\"{}\": \"{}\",\n", to_hex(*root), name);
         }
     }
     root_to_label_mapping += "}";
