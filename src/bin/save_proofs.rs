@@ -35,16 +35,27 @@ fn to_hex<F: PrimeField>(x: F) -> String {
         .into_bigint()
         .to_bytes_be()
         .iter()
-        .filter(|x| *x != &0u8)
         .cloned()
         .collect::<Vec<u8>>();
+    format!("0x{}", hex::encode(bytes))
+}
+
+fn to_address_hex<F: PrimeField>(x: F) -> String {
+    let bytes = x
+        .into_bigint()
+        .to_bytes_be()
+        .iter()
+        .skip(32 - 20)
+        .cloned()
+        .collect::<Vec<u8>>();
+
     format!("0x{}", hex::encode(bytes))
 }
 
 impl<F: PrimeField> ToJson for MerkleProof<F> {
     fn to_json(&self) -> MerkleProofJsonWithAddress {
         MerkleProofJsonWithAddress {
-            address: to_hex(self.leaf),
+            address: to_address_hex(self.leaf),
             merkleProof: MerkleProofJson {
                 root: to_hex(self.root),
                 siblings: self
@@ -112,7 +123,7 @@ fn save_tree<F: PrimeField>(leaves: Vec<F>, depth: usize, out_file: &str) -> F {
     let addresses_json = serde_json::to_string(
         &leaves
             .iter()
-            .map(|leaf| to_hex(*leaf))
+            .map(|leaf| to_address_hex(*leaf))
             .collect::<Vec<String>>(),
     )
     .unwrap();
