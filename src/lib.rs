@@ -2,6 +2,12 @@
 use ark_ff::PrimeField;
 use poseidon::{Poseidon, PoseidonConstants};
 use rayon::{prelude::ParallelIterator, slice::ParallelSlice};
+use serde::Serialize;
+
+pub use ark_ff;
+pub use ark_secp256k1;
+pub use num_bigint;
+pub use poseidon;
 
 pub struct MerkleTree<F: PrimeField, const WIDTH: usize> {
     _marker: std::marker::PhantomData<F>,
@@ -13,12 +19,41 @@ pub struct MerkleTree<F: PrimeField, const WIDTH: usize> {
     pub root: Option<F>,
 }
 
+#[derive(Serialize)]
+pub struct MerkleProofJson {
+    leaf: String,
+    siblings: Vec<[String; 1]>,
+    pathIndices: Vec<String>,
+    root: String,
+}
+
 #[derive(Debug)]
 pub struct MerkleProof<F: PrimeField> {
     pub leaf: F,
     pub siblings: Vec<F>,
     pub path_indices: Vec<usize>,
     pub root: F,
+}
+
+impl<F: PrimeField> MerkleProof<F> {
+    pub fn to_json(&self) -> String {
+        let json = MerkleProofJson {
+            leaf: self.leaf.to_string(),
+            root: self.root.to_string(),
+            siblings: self
+                .siblings
+                .iter()
+                .map(|sibling| [sibling.to_string()])
+                .collect::<Vec<[String; 1]>>(),
+            pathIndices: self
+                .path_indices
+                .iter()
+                .map(|path_index| path_index.to_string())
+                .collect::<Vec<String>>(),
+        };
+
+        serde_json::to_string(&json).unwrap()
+    }
 }
 
 impl<F: PrimeField, const WIDTH: usize> MerkleTree<F, WIDTH> {

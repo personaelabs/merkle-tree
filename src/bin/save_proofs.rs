@@ -27,11 +27,11 @@ pub struct MerkleProofJsonWithAddress {
 }
 
 trait ToJson {
-    fn to_json(&self) -> MerkleProofJsonWithAddress;
+    fn to_formatted_json(&self) -> MerkleProofJsonWithAddress;
 }
 
 impl<F: PrimeField> ToJson for MerkleProof<F> {
-    fn to_json(&self) -> MerkleProofJsonWithAddress {
+    fn to_formatted_json(&self) -> MerkleProofJsonWithAddress {
         let address_bytes = &self.leaf.into_bigint().to_bytes_be()[12..];
         MerkleProofJsonWithAddress {
             address: format!("0x{}", hex::encode(address_bytes)),
@@ -81,7 +81,7 @@ fn save_tree<F: PrimeField>(leaves: Vec<F>, depth: usize, out_file: &str) -> F {
     // Create proofs and convert then into json
     let proofs = leaves
         .iter()
-        .map(|address| tree.create_proof(*address).to_json())
+        .map(|address| tree.create_proof(*address).to_formatted_json())
         .collect::<Vec<MerkleProofJsonWithAddress>>();
 
     // Construct the json string of proofs
