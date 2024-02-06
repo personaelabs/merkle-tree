@@ -1,0 +1,36 @@
+name: Publish npm package
+
+on:
+  # Trigger the workflow when a new release is created
+  release:
+    types: [published]
+  # Trigger the workflow manually
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout the code
+    - uses: actions/checkout@v3
+
+    # Setup Node.js
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    # Install dependencies
+    - name: Install dependencies
+      run: pnpm install
+
+    # Install wasm-pack
+    - name: wasm-pack-action
+      uses: jetli/wasm-pack-action@v0.4.0
+
+    # Build and publish to npm
+    - name: Build and publish to npm
+      run: sh ./scripts/publish.sh ${{ github.ref }}
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
