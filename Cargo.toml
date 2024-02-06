@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 ark-ff = "0.4.2"
@@ -16,6 +18,8 @@ rayon = "1.8.0"
 serde = { version = "1.0.188", "features" = ["derive"] }
 serde_json = "1.0.107"
 ark-secp256k1 = "0.4.0"
+wasm-bindgen = "0.2.90"
+console_error_panic_hook = "0.1.7"
 
 [dev-dependencies]
 ark-std = "0.4.0"

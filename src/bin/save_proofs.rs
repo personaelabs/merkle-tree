@@ -2,7 +2,7 @@
 use ark_ff::{BigInteger, PrimeField};
 use ark_secp256k1;
 use csv::ReaderBuilder;
-use merkle_tree::{MerkleProof, MerkleTree};
+use merkle_tree::tree::MerkleTree;
 use num_bigint::BigUint;
 use poseidon::constants::secp256k1_w3;
 use serde::Serialize;
@@ -14,42 +14,9 @@ use std::{
 };
 
 #[derive(Serialize)]
-pub struct MerkleProofJson {
-    siblings: Vec<[String; 1]>,
-    pathIndices: Vec<String>,
-    root: String,
-}
-
-#[derive(Serialize)]
 pub struct MerkleProofJsonWithAddress {
     address: String,
-    merkleProof: MerkleProofJson,
-}
-
-trait ToJson {
-    fn to_formatted_json(&self) -> MerkleProofJsonWithAddress;
-}
-
-impl<F: PrimeField> ToJson for MerkleProof<F> {
-    fn to_formatted_json(&self) -> MerkleProofJsonWithAddress {
-        let address_bytes = &self.leaf.into_bigint().to_bytes_be()[12..];
-        MerkleProofJsonWithAddress {
-            address: format!("0x{}", hex::encode(address_bytes)),
-            merkleProof: MerkleProofJson {
-                root: self.root.to_string(),
-                siblings: self
-                    .siblings
-                    .iter()
-                    .map(|sibling| [sibling.to_string()])
-                    .collect::<Vec<[String; 1]>>(),
-                pathIndices: self
-                    .path_indices
-                    .iter()
-                    .map(|path_index| path_index.to_string())
-                    .collect::<Vec<String>>(),
-            },
-        }
-    }
+    merkleProof: String,
 }
 
 const DEV_ACCOUNTS: [&str; 2] = [
@@ -81,7 +48,16 @@ fn save_tree<F: PrimeField>(leaves: Vec<F>, depth: usize, out_file: &str) -> F {
     // Create proofs and convert then into json
     let proofs = leaves
         .iter()
-        .map(|address| tree.create_proof(*address).to_formatted_json())
+        .map(|leaf| {
+            let merkleProof = tree.create_proof(*leaf).to_json();
+            let address_bytes = &leaf.into_bigint().to_bytes_be()[12..];
+            let address = format!("0x{}", hex::encode(address_bytes));
+
+            MerkleProofJsonWithAddress {
+                address,
+                merkleProof,
+            }
+        })
         .collect::<Vec<MerkleProofJsonWithAddress>>();
 
     // Construct the json string of proofs
