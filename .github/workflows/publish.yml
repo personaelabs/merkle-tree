@@ -29,6 +29,6 @@ jobs:
 
     # Build and publish to npm
     - name: Build and publish to npm
-      run: sh ./scripts/publish.sh ${{ github.ref }}
+      run: sh ./scripts/publish.sh ${{ github.ref_name }}
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
