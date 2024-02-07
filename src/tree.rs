@@ -1,16 +1,7 @@
 use ark_ff::PrimeField;
+use ark_std::iterable::Iterable;
 use poseidon::{Poseidon, PoseidonConstants};
-use rayon::{prelude::ParallelIterator, slice::ParallelSlice};
 use serde::Serialize;
-
-pub struct MerkleTree<F: PrimeField, const WIDTH: usize> {
-    leaves: Vec<F>,
-    poseidon: Poseidon<F, WIDTH>,
-    is_tree_ready: bool,
-    layers: Vec<Vec<F>>,
-    depth: Option<usize>,
-    pub root: Option<F>,
-}
 
 #[derive(Debug)]
 pub struct MerkleProof<F: PrimeField> {
@@ -52,10 +43,17 @@ impl<F: PrimeField> MerkleProof<F> {
     }
 }
 
+pub struct MerkleTree<F: PrimeField, const WIDTH: usize> {
+    leaves: Vec<F>,
+    poseidon: Poseidon<F, WIDTH>,
+    is_tree_ready: bool,
+    layers: Vec<Vec<F>>,
+    depth: Option<usize>,
+    pub root: Option<F>,
+}
+
 impl<F: PrimeField, const WIDTH: usize> MerkleTree<F, WIDTH> {
-    /**
-     * Create a new Merkle tree with the given Poseidon constants
-     */
+    /// Create a new Merkle tree with the given Poseidon constants
     pub fn new(constants: PoseidonConstants<F>) -> Self {
         let arty = WIDTH - 1;
 
@@ -74,17 +72,13 @@ impl<F: PrimeField, const WIDTH: usize> MerkleTree<F, WIDTH> {
         }
     }
 
-    /**
-     * Insert a leaf into the tree
-     */
+    /// Insert a leaf into the tree
     pub fn insert(&mut self, leaf: F) {
         // Add the leaf to the bottom-most layer
         self.leaves.push(leaf);
     }
 
-    /**
-     * Hash the given nodes and return the output
-     */
+    /// Hash the given nodes and return the output
     fn hash(poseidon: &mut Poseidon<F, WIDTH>, nodes: &[F]) -> F {
         assert_eq!(nodes.len(), poseidon.state.len() - 1);
         for i in 0..nodes.len() {
@@ -100,9 +94,7 @@ impl<F: PrimeField, const WIDTH: usize> MerkleTree<F, WIDTH> {
         out
     }
 
-    /**
-     * Mark `is_tree_ready` as true and calculate the Merkle root of the tree
-     */
+    /// Mark `is_tree_ready` as true and calculate the Merkle root of the tree
     pub fn finish(&mut self) {
         // Pad the leaves to a power of 2
         let padded_len = self.leaves.len().next_power_of_two();
@@ -127,12 +119,17 @@ impl<F: PrimeField, const WIDTH: usize> MerkleTree<F, WIDTH> {
         self.layers.push(self.leaves.clone());
         let mut current_layer = self.layers[0].clone();
 
+        let zero_hash = Self::hash(&mut self.poseidon, &vec![F::ZERO; WIDTH - 1]);
+
         for _ in 0..self.depth.unwrap() {
             let layer_above = current_layer
-                .par_chunks(self.arity())
+                .chunks(self.arity())
                 .map(|nodes| {
-                    let mut poseidon = self.poseidon.clone();
-                    Self::hash(&mut poseidon, nodes)
+                    if nodes.iter().all(|&node| node == F::ZERO) {
+                        zero_hash
+                    } else {
+                        Self::hash(&mut self.poseidon, nodes)
+                    }
                 })
                 .collect::<Vec<F>>();
 
