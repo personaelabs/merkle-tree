@@ -237,13 +237,13 @@ mod tests {
             .collect::<Vec<F>>();
 
         // Insert leaves
-        let insert_leaves_timer = start_timer!(|| "Insert leaves");
+        let build_tree_timer = start_timer!(|| "Build tree");
         for leaf in leaves.iter() {
             tree.insert(*leaf);
         }
-        end_timer!(insert_leaves_timer);
 
         tree.finish();
+        end_timer!(build_tree_timer);
 
         let proof = tree.create_proof(leaves[0]);
         assert!(tree.verify_proof(tree.root.unwrap(), &proof));

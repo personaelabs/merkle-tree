@@ -10,7 +10,7 @@ pub fn get_proofs<F: PrimeField>(
     depth: usize,
     constants: PoseidonConstants<F>,
 ) -> Vec<MerkleProof<F>> {
-    let leaves = leaves.clone();
+    let leaves = leaves;
 
     let mut padded_leaves = leaves.clone();
     // Pad the leaves to equal the size of the tree
