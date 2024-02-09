@@ -1,6 +1,7 @@
 use ark_ff::PrimeField;
 use ark_std::iterable::Iterable;
 use poseidon::{Poseidon, PoseidonConstants};
+use rayon::{iter::ParallelIterator, slice::ParallelSlice};
 use serde::Serialize;
 
 #[derive(Debug)]
@@ -123,12 +124,13 @@ impl<F: PrimeField, const WIDTH: usize> MerkleTree<F, WIDTH> {
 
         for _ in 0..self.depth.unwrap() {
             let layer_above = current_layer
-                .chunks(self.arity())
+                .par_chunks(self.arity())
                 .map(|nodes| {
                     if nodes.iter().all(|&node| node == F::ZERO) {
                         zero_hash
                     } else {
-                        Self::hash(&mut self.poseidon, nodes)
+                        let mut poseidon = self.poseidon.clone();
+                        Self::hash(&mut poseidon, nodes)
                     }
                 })
                 .collect::<Vec<F>>();
@@ -227,7 +229,7 @@ mod tests {
 
         let mut tree = MerkleTree::<F, WIDTH>::new(secp256k1_w3());
 
-        let depth = 10;
+        let depth = 18;
         let num_leaves = 1 << depth;
         let leaves = (0..num_leaves)
             .map(|i| F::from(i as u32))
