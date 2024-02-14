@@ -1,4 +1,5 @@
 use ark_ff::PrimeField;
+use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::iterable::Iterable;
 use poseidon::{Poseidon, PoseidonConstants};
 use rayon::{iter::ParallelIterator, slice::ParallelSlice};
@@ -12,7 +13,7 @@ pub struct MerkleProof<F: PrimeField> {
     pub root: F,
 }
 
-#[derive(Serialize)]
+#[derive(CanonicalSerialize, Serialize)]
 pub struct MerkleProofJson {
     siblings: Vec<[String; 1]>,
     pathIndices: Vec<String>,
@@ -44,6 +45,7 @@ impl<F: PrimeField> MerkleProof<F> {
     }
 }
 
+#[derive(CanonicalSerialize, CanonicalDeserialize)]
 pub struct MerkleTree<F: PrimeField, const WIDTH: usize> {
     leaves: Vec<F>,
     poseidon: Poseidon<F, WIDTH>,
@@ -211,6 +213,19 @@ impl<F: PrimeField, const WIDTH: usize> MerkleTree<F, WIDTH> {
         }
 
         node == root
+    }
+
+    /// Serialize the tree
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut bytes = vec![];
+
+        self.serialize_compressed(&mut bytes).unwrap();
+        bytes
+    }
+
+    /// Deserialize the tree
+    pub fn from_compressed_bytes(bytes: &[u8]) -> Self {
+        Self::deserialize_compressed(bytes).unwrap()
     }
 }
 

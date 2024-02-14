@@ -21,6 +21,7 @@ ark-secp256k1 = "0.4.0"
 wasm-bindgen = "0.2.90"
 console_error_panic_hook = "0.1.7"
 once_cell = "1.19.0"
+ark-serialize = { version = "0.4.2", features = ["derive"] }
 
 [dev-dependencies]
 ark-std = "0.4.0"
