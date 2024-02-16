@@ -122,14 +122,18 @@ impl<F: PrimeField, const WIDTH: usize> MerkleTree<F, WIDTH> {
         self.layers.push(self.leaves.clone());
         let mut current_layer = self.layers[0].clone();
 
-        let zero_hash = Self::hash(&mut self.poseidon, &vec![F::ZERO; WIDTH - 1]);
+        let mut precomputed = vec![F::ZERO];
+        for i in 0..self.depth.unwrap() {
+            let hash = Self::hash(&mut self.poseidon, &[precomputed[i]; 2]);
+            precomputed.push(hash);
+        }
 
-        for _ in 0..self.depth.unwrap() {
+        for i in 0..self.depth.unwrap() {
             let layer_above = current_layer
                 .par_chunks(self.arity())
                 .map(|nodes| {
-                    if nodes.iter().all(|&node| node == F::ZERO) {
-                        zero_hash
+                    if nodes.iter().all(|&x| x == precomputed[i]) {
+                        precomputed[i + 1]
                     } else {
                         let mut poseidon = self.poseidon.clone();
                         Self::hash(&mut poseidon, nodes)
@@ -232,6 +236,7 @@ impl<F: PrimeField, const WIDTH: usize> MerkleTree<F, WIDTH> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ark_ff::Field;
     use ark_std::{end_timer, start_timer};
     use poseidon::constants::secp256k1_w3;
 
@@ -245,10 +250,14 @@ mod tests {
         let mut tree = MerkleTree::<F, WIDTH>::new(secp256k1_w3());
 
         let depth = 18;
-        let num_leaves = 1 << depth;
+        let num_leaves = 10000;
         let leaves = (0..num_leaves)
             .map(|i| F::from(i as u32))
             .collect::<Vec<F>>();
+
+        let mut padded_leaves = leaves.clone();
+        // Pad the leaves to equal the size of the tree
+        padded_leaves.resize(1 << depth, F::ZERO);
 
         // Insert leaves
         let build_tree_timer = start_timer!(|| "Build tree");
