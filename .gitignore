@@ -2,3 +2,5 @@
 /Cargo.lock
 /csv
 /out
+
+.DS_Store
