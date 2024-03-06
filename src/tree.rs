@@ -47,11 +47,11 @@ impl<F: PrimeField> MerkleProof<F> {
 
 #[derive(CanonicalSerialize, CanonicalDeserialize)]
 pub struct MerkleTree<F: PrimeField, const WIDTH: usize> {
-    leaves: Vec<F>,
-    poseidon: Poseidon<F, WIDTH>,
+    pub leaves: Vec<F>,
+    pub poseidon: Poseidon<F, WIDTH>,
     is_tree_ready: bool,
-    layers: Vec<Vec<F>>,
-    depth: Option<usize>,
+    pub layers: Vec<Vec<F>>,
+    pub depth: Option<usize>,
     pub root: Option<F>,
 }
 
@@ -82,7 +82,7 @@ impl<F: PrimeField, const WIDTH: usize> MerkleTree<F, WIDTH> {
     }
 
     /// Hash the given nodes and return the output
-    fn hash(poseidon: &mut Poseidon<F, WIDTH>, nodes: &[F]) -> F {
+    pub fn hash(poseidon: &mut Poseidon<F, WIDTH>, nodes: &[F]) -> F {
         assert_eq!(nodes.len(), poseidon.state.len() - 1);
         for i in 0..nodes.len() {
             poseidon.state[i + 1] = nodes[i];
